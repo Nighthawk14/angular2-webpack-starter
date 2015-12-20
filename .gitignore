@@ -1,3 +1,5 @@
+# @AngularClass
+
 # Logs
 logs
 *.log
@@ -29,11 +31,24 @@ Icon?
 Thumbs.db
 
 # Node Files #
-node_modules
-bower_components
+/node_modules
+/bower_components
 
-# Dist       #
-dist
-public/__build__/**
+# Typing #
+/src/typings/tsd/
+/typings/
+/tsd_typings/
+
+# Dist #
+/dist
+/public/__build__/
+/src/*/__build__/
+__build__/**
 .webpack.json
 
+#doc
+/doc
+
+# IDE #
+.idea/
+*.swp

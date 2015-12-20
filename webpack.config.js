@@ -1,159 +1,96 @@
+// @AngularClass
+
+/*
+ * Helper: root(), and rootDir() are defined at the bottom
+ */
+var path = require('path');
 var webpack = require('webpack');
-var HtmlWebpackPlugin = require("html-webpack-plugin");
-var path = require('path');
-var sliceArgs = Function.prototype.call.bind(Array.prototype.slice);
-var path = require('path');
+// Webpack Plugins
+var CommonsChunkPlugin = webpack.optimize.CommonsChunkPlugin;
 
+/*
+ * Config
+ */
 module.exports = {
-  devtool: 'source-maps',
-  // devtool: 'eval',
+  // for faster builds use 'eval'
+  devtool: 'source-map',
+  debug: true, // remove in production
 
-  //
   entry: {
-    angular2: [
-      // Angular 2 Deps
-      'zone.js',
-      // 'zone.js/dist/long-stack-trace-zone.js',
-      'reflect-metadata',
-      'rtts_assert/rtts_assert',
-
-      './src/common/BrowserDomAdapter',
-
-      'angular2/angular2',
-      'angular2/router',
-      'angular2/di',
-      'angular2/src/facade/browser'
-    ],
-    app: [
-      // App
-
-      // 'webpack-dev-server/client?http://localhost:8080',
-      // 'webpack/hot/dev-server',
-
-      /*
-      // * include any 3rd party js lib here
-      */
-      './src/app/bootstrap'
-    ]
+    'vendor': './src/vendor.ts',
+    'app': './src/bootstrap.ts' // our angular app
   },
 
   // Config for our build files
   output: {
-    path: root('public/__build__'),
+    path: root('__build__'),
     filename: '[name].js',
-    // filename: '[name].[hash].js',
-    sourceMapFilename: '[name].js.map',
+    sourceMapFilename: '[name].map',
     chunkFilename: '[id].chunk.js'
-    // publicPath: 'http://mycdn.com/'
   },
 
   resolve: {
-    root: __dirname,
-    extensions: [
-      '',
-      '.ts',
-      '.js',
-      '.json',
-      '.webpack.js',
-      '.web.js'
-    ],
-    alias: {
-      // When Angular2 has a TypeScript build
-      // we can switch between development and production
-      // 'angular2': 'angular2/es6/prod',
-      // 'angular2': 'angular2/es6/dev',
-
-      'app': 'src/app',
-      'common': 'src/common',
-
-      // 'components': 'src/app/components'
-      // 'services': '/app/services/*.js',
-      // 'stores/*': '/app/stores/*.js'
-      // 'angular2': 'angular2/es6/dev'
-    }
+    // ensure loader extensions match
+    extensions: ['','.ts','.js','.json', '.css', '.html']
   },
 
   module: {
+    preLoaders: [ { test: /\.ts$/, loader: 'tslint-loader' } ],
     loaders: [
+      // Support for .ts files.
+      {
+        test: /\.ts$/,
+        loader: 'ts-loader',
+        query: {
+          'ignoreDiagnostics': [
+            2403, // 2403 -> Subsequent variable declarations
+            2300, // 2300 -> Duplicate identifier
+            2374, // 2374 -> Duplicate number index signature
+            2375  // 2375 -> Duplicate string index signature
+          ]
+        },
+        exclude: [ /\.(spec|e2e)\.ts$/, /node_modules/ ]
+      },
+
       // Support for *.json files.
-      { test: /\.json$/,  loader: 'json' },
+      { test: /\.json$/,  loader: 'json-loader' },
 
       // Support for CSS as raw text
-      { test: /\.css$/,   loader: 'raw' },
+      { test: /\.css$/,   loader: 'raw-loader' },
 
       // support for .html as raw text
-      { test: /\.html$/,  loader: 'raw' },
-
-      // Support for .ts files.
-      { test: /\.ts$/,    loader: 'typescript-simple' }
+      { test: /\.html$/,  loader: 'raw-loader' },
     ],
-    noParse: [
-      /rtts_assert\/src\/rtts_assert/
-    ]
+    noParse: [ /.+zone\.js\/dist\/.+/, /.+angular2\/bundles\/.+/ ]
   },
 
   plugins: [
-    new webpack.optimize.CommonsChunkPlugin({
-      name: 'angular2',
-      minChunks: Infinity,
-    }),
-    new webpack.optimize.CommonsChunkPlugin({
-      name: 'common',
-      filename: 'common.js'
-    }),
-    new webpack.DefinePlugin({
-      'ENV': {
-        'type': JSON.stringify('development'),
-        'debug': true
-      }
-    }),
-
-    // new HtmlWebpackPlugin({
-    //   inject: true,
-    //   template: './src/index.html',
-    //   title: getBanner(),
-    //   filename: '../index.html',
-    //   chunks: ['shared']
-    // }),
-
-    // new webpack.optimize.UglifyJsPlugin({
-    //   compress: {
-    //     warnings: false,
-    //     drop_debugger: false
-    //   }
-    // beautify: false
-    // }),
-
-    // new webpack.HotModuleReplacementPlugin(),
-    new webpack.optimize.OccurenceOrderPlugin(),
-    new webpack.optimize.DedupePlugin(),
-    new webpack.BannerPlugin(getBanner())
+    new CommonsChunkPlugin({ name: 'vendor', filename: 'vendor.js', minChunks: Infinity }),
+    new CommonsChunkPlugin({ name: 'common', filename: 'common.js', minChunks: 2, chunks: ['app', 'vendor'] })
+   // include uglify in production
   ],
-  // our Development Server configs
-  devServer: {
-    inline: true,
-    colors: true,
-    historyApiFallback: true,
-    contentBase: 'public',
-    publicPath: '/__build__'
-  },
-  debug: true,
-  cache: true,
 
-  context: __dirname,
-  stats: { colors: true, reasons: true }
+  // Other module loader config
+  tslint: {
+    emitErrors: false,
+    failOnHint: false
+  },
+  // our Webpack Development Server config
+  devServer: {
+    historyApiFallback: true,
+    contentBase: 'src/public',
+    publicPath: '/__build__'
+  }
 };
 
-function getBanner() {
-  return 'Angular2 Webpack Starter by @gdi2990 from @AngularClass';
-}
+// Helper functions
 
 function root(args) {
-  args = sliceArgs(arguments, 0);
+  args = Array.prototype.slice.call(arguments, 0);
   return path.join.apply(path, [__dirname].concat(args));
 }
+
 function rootNode(args) {
-  args = sliceArgs(arguments, 0);
+  args = Array.prototype.slice.call(arguments, 0);
   return root.apply(path, ['node_modules'].concat(args));
 }
-
